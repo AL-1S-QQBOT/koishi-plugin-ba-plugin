@@ -1,7 +1,7 @@
 name: 新功能
 description: 您希望 ba-plugin 添加什么新功能
-title: '[New Feature] '
-labels: [enhancement]
+title: '[新功能 | New Feature] '
+labels: [新功能 | enhancement]
 body:
   - type: markdown
     attributes:
@@ -13,7 +13,7 @@ body:
         在提出建议之前，请先确认以下所有事项：
 
         1. 我已更新到最新版，确认我想要的功能还没有实现。
-        2. 我已在 [Issues](https://github.com/Alin-sky/koishi-plugin-ba-plugin/issues?q=label%3Aenhancement) 中检索，确认这一类似的建议 **未被提交过**。
+        2. 我已在 [Issues](https://github.com/AL-1S-QQBOT/koishi-plugin-ba-plugin/issues?q=label%3A%22%E6%96%B0%E5%8A%9F%E8%83%BD%20%7C%20enhancement%22) 中检索，确认这一类似的建议 **未被提交过**。
         3. 我认为我想要的功能是用户广泛需要的，且没有超出 **软件本来** 的开发目标。
         4. 我已知晓由于开发者时间精力有限，我提交的新功能请求可能需要比较久的时间才能实现。
 
