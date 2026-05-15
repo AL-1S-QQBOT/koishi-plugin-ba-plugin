@@ -10,15 +10,11 @@
     "incremental": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "strict": false,
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "jsxImportSource": "@satorijs/element",
-    "types": [
-      "node",
-      "yml-register/types"
-    ]
+    "types": ["node", "yml-register/types"]
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }
