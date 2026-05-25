@@ -1,4 +1,4 @@
-name: Node.js CI and Release
+name: Node.js CI/CD Pipeline
 
 on:
   push:
@@ -35,21 +35,7 @@ jobs:
     
     - name: Check package.json scripts
       run: npm run || echo "No npm scripts defined"
-    
-    - name: Check for TypeScript
-      run: |
-        if [ -f tsconfig.json ]; then
-          echo "TypeScript project detected"
-          npx tsc --version || npm install typescript --no-save
-        else
-          echo "No TypeScript config found"
-        fi
-    
+  
     - name: Build
       run: |
-        if [ -f tsconfig.json ]; then
-          npx tsc || npm run build --if-present
-        else
-          npm run build --if-present
-        fi
-    
+        npx tsc --build

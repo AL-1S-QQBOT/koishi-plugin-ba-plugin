@@ -37,7 +37,12 @@
     ]
   },
   "dependencies": {
+    "@koishijs/canvas": "^0.2.0",
+    "@satorijs/adapter-qq": "^4.11.0",
     "chinese-s2t-pro": "^1.0.2",
+    "koishi-plugin-puppeteer": "^3.9.0",
+    "typescript": "^6.0.3",
+    "yml-register": "^1.2.5",
     "zh_cn": "^0.0.7"
   },
   "devDependencies": {
