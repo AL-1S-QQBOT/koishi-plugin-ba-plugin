@@ -15,7 +15,7 @@ const random = new Random(() => Math.random())
 
 //export const using = ['puppeteer'] as const;
 export const inject = ['puppeteer']
-//Alin's ba zongli&dajuezhan get v1.0-rc 2024-05-24 
+//Alin's ba zongli&dajuezhan get v1.0-rc 2024-05-24
 export async function active_get(ctx: Context, config: Config) {
     const root_act = await rootF('bap-active')
     const root_img = await rootF("bap-img")
@@ -1082,7 +1082,10 @@ export async function active_get(ctx: Context, config: Config) {
         let s = 0
         for (let i = 0; i < wiki_data.data.length; i++) {
             if (!(wiki_data.data[i].picture == '')) {
-                acvimg.push(await ctx.canvas.loadImage('https:' + wiki_data.data[i].picture))
+                // 拼接后端反代url
+                let pictureUrl = `https:${wiki_data.data[i].picture}`
+                let proxyPicture = `http://localhost:9191/proxyImage?url=${pictureUrl}`
+                acvimg.push(await ctx.canvas.loadImage(proxyPicture))
                 let drawm_hei;
                 config.plugin_config.draw_modle == "canvas" ? drawm_hei = 'height' : drawm_hei = 'naturalHeight'
                 const m = 260 / acvimg[i - s][drawm_hei]
@@ -1279,11 +1282,27 @@ export async function active_get(ctx: Context, config: Config) {
         .alias("活动")
         .action(async ({ session }) => {
             const utimetamp = Math.floor(Date.now() / 1000);
-            const wiki_data = await ctx.http.get(`https://ba.gamekee.com/v1/activity/query?active_at=${utimetamp}`, {
-                headers: {
-                    "game-alias": "ba"
-                }
+            // 获取日服，国服，国际服的wiki_data
+            const j_wiki_data = await ctx.http.get(`https://www.gamekee.com/v1/activity/page-list?importance=0&sort=-1&keyword=&limit=999&page_no=1&serverId=15&status=0`, {
+              headers: {
+                "game-alias": "ba"
+              }
             })
+            const c_wiki_data = await ctx.http.get(`https://www.gamekee.com/v1/activity/page-list?importance=0&sort=-1&keyword=&limit=999&page_no=1&serverId=16&status=0`, {
+              headers: {
+                "game-alias": "ba"
+              }
+            })
+            const g_wiki_data = await ctx.http.get(`https://www.gamekee.com/v1/activity/page-list?importance=0&sort=-1&keyword=&limit=999&page_no=1&serverId=17&status=0`, {
+              headers: {
+                "game-alias": "ba"
+              }
+            })
+            let wiki_data = {
+              "code": 0,
+              "msg": "",
+              "data": [...j_wiki_data.data, ...c_wiki_data.data, ...g_wiki_data.data].filter(item => item.end_at >= Date.now() / 1000)
+            }
             const cachedGenerator = await (await createCachedImageGenerator(wiki_data))()
             session.send(await h.image(await cachedGenerator))
         })
