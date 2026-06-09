@@ -15,7 +15,7 @@ const random = new Random(() => Math.random())
 
 //export const using = ['puppeteer'] as const;
 export const inject = ['puppeteer']
-//Alin's ba zongli&dajuezhan get v1.0-rc 2024-05-24 
+//Alin's ba zongli&dajuezhan get v1.0-rc 2024-05-24
 export async function active_get(ctx: Context, config: Config) {
     const root_act = await rootF('bap-active')
     const root_img = await rootF("bap-img")
@@ -1077,14 +1077,70 @@ export async function active_get(ctx: Context, config: Config) {
             result += currentLine; // 添加最后一行
             return result;
         }
+
+        // 将webp图片转成png图片
+        async function convertWebpToPng(webpBuffer: Buffer) {
+            const page = await ctx.puppeteer.page()
+
+            const base64 = webpBuffer.toString('base64')
+
+            await page.setContent(`<img id="img" src="data:image/webp;base64,${base64}">`)
+
+            await page.waitForSelector('#img')
+
+            const img = await page.$('#img')
+
+            const pngBuffer = await img.screenshot({
+              type: 'png'
+            })
+
+            await page.close()
+            return pngBuffer
+          }
+
+        // 获取图片资源
+        async function getPicture(pictureUrl) {
+            let response = ctx.http.get(pictureUrl, {
+                headers: {
+                  "Game-Alias": "ba",
+                  "Origin": "https://www.gamekee.com",
+                  "Referer": "https://www.gamekee.com/",
+                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0",
+                  "Accept": "application/json, text/plain, */*",
+                  "Accept-Encoding": "gzip, deflate, br, zstd",
+                  "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+                  "Sec-CH-UA": '"Chromium";v="148", "Microsoft Edge";v="148", "Not/A)Brand";v="99"',
+                  "Sec-CH-UA-Mobile": "?0",
+                  "Sec-CH-UA-Platform": '"Windows"',
+                  "Sec-Fetch-Dest": "empty",
+                  "Sec-Fetch-Mode": "cors",
+                  "Sec-Fetch-Site": "same-site",
+                  "Priority": "u=1, i",
+                  "Cookie": "wk_uuid=dec65dd4-b56a-46fa-b9df-b41c6b22d03e; _ga=GA1.1.1484824820.1776000263; viewport_height=732; wikiTheme=light; _c_WBKFRo=uhZADd3dh4qUUahHhbh2Pl3124Tb73KQRdiq3MJH; Hm_lvt_4e86461ca95817a955a0fd34fef28c67=1776579050,1776669128,1778484447,1778500494; HMACCOUNT=E02F7FD111A7340D; __qc_wId=402; ba_server_id=15; viewport_width=866; Hm_lpvt_4e86461ca95817a955a0fd34fef28c67=1778508662; _ga_4M9R3LQQS5=GS2.1.s1778508660$o8$g1$t1778508662$j58$l0$h0"
+              }
+            });
+            // 从URL获取图片类型
+            let imageType = pictureUrl.split('.').pop().split('?')[0].toLowerCase()
+            let imageBuffer = Buffer.from(await response)
+            if (imageType == "webp") {
+              return await convertWebpToPng(imageBuffer)
+            }
+            return response
+        }
+
         let acvimg = []
         let yls = 30 * A, yrs = 30 * A
         let s = 0
         for (let i = 0; i < wiki_data.data.length; i++) {
             if (!(wiki_data.data[i].picture == '')) {
-                acvimg.push(await ctx.canvas.loadImage('https:' + wiki_data.data[i].picture))
+                // 加载图片数据
+                let pictureUrl = `https:${wiki_data.data[i].picture}`;
+                let picture = await getPicture(pictureUrl);
+                acvimg.push(await ctx.canvas.loadImage(picture))
+
                 let drawm_hei;
-                config.plugin_config.draw_modle == "canvas" ? drawm_hei = 'height' : drawm_hei = 'naturalHeight'
+                //通过判断当前图片当中的属性名是naturalHeight还是height，来给drawm_hei赋值
+                drawm_hei = 'naturalHeight' in acvimg[i - s] ? 'naturalHeight' : 'height';
                 const m = 260 / acvimg[i - s][drawm_hei]
                 const hei = acvimg[i - s][drawm_hei] * m
                 jud_time(wiki_data.data[i].begin_at) ? yls += (hei + 160 * A) : yrs += (hei + 160 * A)
@@ -1152,9 +1208,11 @@ export async function active_get(ctx: Context, config: Config) {
             if (!(wiki_data.data[i].picture == '')) {
 
                 let drawm_hei;
-                config.plugin_config.draw_modle == "canvas" ? drawm_hei = 'height' : drawm_hei = 'naturalHeight'
                 let drawm_wid;
-                config.plugin_config.draw_modle == "canvas" ? drawm_wid = 'width' : drawm_wid = 'naturalWidth'
+                //通过判断当前图片当中的属性名是naturalWidth还是width，来给drawm_wid赋值，drawm_hei同理
+                drawm_wid = 'naturalWidth' in acvimg[i - ss] ? 'naturalWidth' : 'width';
+                drawm_hei = 'naturalHeight' in acvimg[i - ss] ? 'naturalHeight' : 'height';
+
                 const m = 250 * A / acvimg[i - ss][drawm_hei]
                 const hei = acvimg[i - ss][drawm_hei] * m
                 const widimg = acvimg[i - ss][drawm_wid] * m
@@ -1279,11 +1337,27 @@ export async function active_get(ctx: Context, config: Config) {
         .alias("活动")
         .action(async ({ session }) => {
             const utimetamp = Math.floor(Date.now() / 1000);
-            const wiki_data = await ctx.http.get(`https://ba.gamekee.com/v1/activity/query?active_at=${utimetamp}`, {
-                headers: {
-                    "game-alias": "ba"
-                }
+            // 获取日服，国服，国际服的wiki_data
+            const j_wiki_data = await ctx.http.get(`https://www.gamekee.com/v1/activity/page-list?importance=0&sort=-1&keyword=&limit=999&page_no=1&serverId=15&status=0`, {
+              headers: {
+                "game-alias": "ba"
+              }
             })
+            const c_wiki_data = await ctx.http.get(`https://www.gamekee.com/v1/activity/page-list?importance=0&sort=-1&keyword=&limit=999&page_no=1&serverId=16&status=0`, {
+              headers: {
+                "game-alias": "ba"
+              }
+            })
+            const g_wiki_data = await ctx.http.get(`https://www.gamekee.com/v1/activity/page-list?importance=0&sort=-1&keyword=&limit=999&page_no=1&serverId=17&status=0`, {
+              headers: {
+                "game-alias": "ba"
+              }
+            })
+            let wiki_data = {
+              "code": 0,
+              "msg": "",
+              "data": [...j_wiki_data.data, ...c_wiki_data.data, ...g_wiki_data.data].filter(item => item.end_at >= Date.now() / 1000)
+            }
             const cachedGenerator = await (await createCachedImageGenerator(wiki_data))()
             session.send(await h.image(await cachedGenerator))
         })
